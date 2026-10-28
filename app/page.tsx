@@ -45,6 +45,12 @@ export default function Home() {
         </div>
         <div className="flex gap-2">
           <Link
+            href="/match"
+            className="text-sm border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50"
+          >
+            팀 추천받기
+          </Link>
+          <Link
             href="/write"
             className="text-sm border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50"
           >
