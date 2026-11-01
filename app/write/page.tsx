@@ -4,6 +4,7 @@ import { useState } from "react";
 import TagPicker from "../../components/TagPicker";
 import { domainTags, roleTags } from "../../data/tags";
 import { supabase } from "../../lib/supabase";
+import { extractTags } from "../../lib/extractTags";
 
 export default function WritePost() {
   const [title, setTitle] = useState("");
@@ -12,6 +13,7 @@ export default function WritePost() {
   const [deadline, setDeadline] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [extractMsg, setExtractMsg] = useState("");
   const [submitted, setSubmitted] = useState<null | {
     title: string;
     description: string;
@@ -19,6 +21,16 @@ export default function WritePost() {
     deadline: string;
     tags: string[];
   }>(null);
+
+  const handleExtract = () => {
+    const found = extractTags(title + " " + description);
+    if (found.length === 0) {
+      setExtractMsg("글에서 찾은 태그가 없어요. 직접 선택해주세요.");
+      return;
+    }
+    setTags(found);
+    setExtractMsg(`${found.length}개 태그를 자동으로 선택했어요. 필요하면 직접 고쳐주세요.`);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,6 +109,16 @@ export default function WritePost() {
         </div>
 
         <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleExtract}
+              className="border border-blue-500 text-blue-600 rounded-lg px-3 py-1 text-sm hover:bg-blue-50"
+            >
+              글에서 태그 자동 추출
+            </button>
+            {extractMsg && <span className="text-xs text-gray-500">{extractMsg}</span>}
+          </div>
           <label className="text-sm font-medium">분야 태그</label>
           <TagPicker options={domainTags} selected={tags} onChange={setTags} />
         </div>
