@@ -1,19 +1,44 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { posts as allPosts } from "../data/posts";
+import { useEffect, useMemo, useState } from "react";
 import PostCard from "../components/PostCard";
 import TagFilter from "../components/TagFilter";
+import { supabase } from "../lib/supabase";
+
+interface DbPost {
+  id: string;
+  title: string;
+  description: string;
+  tags: string[];
+  needed_count: number;
+  deadline: string;
+}
 
 export default function Home() {
+  const [allPosts, setAllPosts] = useState<DbPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      const { data, error } = await supabase.from("posts").select("*");
+      if (error) {
+        setErrorMsg(error.message);
+      } else {
+        setAllPosts((data as DbPost[]) ?? []);
+      }
+      setLoading(false);
+    };
+    load();
+  }, []);
 
   const allTags = useMemo(() => {
     const tagSet = new Set<string>();
     allPosts.forEach((post) => post.tags.forEach((tag) => tagSet.add(tag)));
     return Array.from(tagSet);
-  }, []);
+  }, [allPosts]);
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
@@ -32,7 +57,7 @@ export default function Home() {
     return [...filtered].sort(
       (a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
     );
-  }, [selectedTags]);
+  }, [allPosts, selectedTags]);
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-10 flex flex-col gap-6">
@@ -68,7 +93,13 @@ export default function Home() {
       <TagFilter allTags={allTags} selectedTags={selectedTags} onToggle={toggleTag} />
 
       <div className="flex flex-col gap-4">
-        {filteredPosts.length === 0 ? (
+        {loading ? (
+          <p className="text-sm text-gray-400 text-center py-10">불러오는 중...</p>
+        ) : errorMsg ? (
+          <p className="text-sm text-red-500 text-center py-10">
+            불러오기에 실패했어요: {errorMsg}
+          </p>
+        ) : filteredPosts.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-10">
             조건에 맞는 모집글이 없어요.
           </p>

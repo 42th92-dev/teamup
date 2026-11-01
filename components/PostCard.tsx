@@ -1,8 +1,16 @@
 import { differenceInCalendarDays } from "date-fns";
-import { Post } from "../data/posts";
+
+interface CardPost {
+  id: string;
+  title: string;
+  description: string;
+  tags: string[];
+  needed_count: number;
+  deadline: string;
+}
 
 interface Props {
-  post: Post;
+  post: CardPost;
 }
 
 export default function PostCard({ post }: Props) {
@@ -31,7 +39,7 @@ export default function PostCard({ post }: Props) {
           </span>
         ))}
       </div>
-      <div className="text-sm text-gray-500">필요 인원 {post.neededCount}명</div>
+      <div className="text-sm text-gray-500">필요 인원 {post.needed_count}명</div>
     </div>
   );
 }
