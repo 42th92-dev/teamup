@@ -1,12 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import TagPicker from "../../components/TagPicker";
 import { domainTags, roleTags } from "../../data/tags";
 import { supabase } from "../../lib/supabase";
 import { extractTags } from "../../lib/extractTags";
+import { useAuth } from "../../lib/AuthContext";
 
 export default function WritePost() {
+  const { user, loading } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [neededCount, setNeededCount] = useState(1);
@@ -14,13 +17,7 @@ export default function WritePost() {
   const [tags, setTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [extractMsg, setExtractMsg] = useState("");
-  const [submitted, setSubmitted] = useState<null | {
-    title: string;
-    description: string;
-    neededCount: number;
-    deadline: string;
-    tags: string[];
-  }>(null);
+  const [saved, setSaved] = useState(false);
 
   const handleExtract = () => {
     const found = extractTags(title + " " + description);
@@ -34,9 +31,11 @@ export default function WritePost() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
     setSaving(true);
 
     const { error } = await supabase.from("posts").insert({
+      author_id: user.id,
       title,
       description,
       tags,
@@ -51,12 +50,45 @@ export default function WritePost() {
       return;
     }
 
-    setSubmitted({ title, description, neededCount, deadline, tags });
+    setSaved(true);
+    setTitle("");
+    setDescription("");
+    setNeededCount(1);
+    setDeadline("");
+    setTags([]);
+    setExtractMsg("");
   };
+
+  if (loading) {
+    return <main className="max-w-2xl mx-auto px-4 py-10 text-sm text-gray-400">불러오는 중...</main>;
+  }
+
+  if (!user) {
+    return (
+      <main className="max-w-2xl mx-auto px-4 py-10 flex flex-col gap-4">
+        <h1 className="text-2xl font-bold">모집글 작성</h1>
+        <p className="text-sm text-gray-500">모집글을 쓰려면 로그인이 필요해요.</p>
+        <Link
+          href="/login"
+          className="text-center bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-700"
+        >
+          로그인하러 가기
+        </Link>
+      </main>
+    );
+  }
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-10 flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">모집글 작성</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">모집글 작성</h1>
+        <Link
+          href="/"
+          className="text-sm border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50"
+        >
+          메인으로
+        </Link>
+      </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="flex flex-col gap-1">
@@ -137,12 +169,9 @@ export default function WritePost() {
         </button>
       </form>
 
-      {submitted && (
-        <div className="border border-green-200 bg-green-50 rounded-lg p-4 text-sm">
-          <p className="font-medium mb-2">DB에 저장됐어요</p>
-          <pre className="whitespace-pre-wrap text-xs text-gray-700">
-            {JSON.stringify(submitted, null, 2)}
-          </pre>
+      {saved && (
+        <div className="border border-green-200 bg-green-50 rounded-lg p-4 text-sm text-gray-700">
+          모집글이 저장됐어요. 메인 화면에서 확인할 수 있어요.
         </div>
       )}
     </main>

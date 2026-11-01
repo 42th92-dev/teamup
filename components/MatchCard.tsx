@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { MatchResult } from "../lib/matching";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../lib/AuthContext";
 
 interface Props {
   result: MatchResult;
@@ -11,9 +13,7 @@ interface Props {
 
 export default function MatchCard({ result, rank }: Props) {
   const { post, score, matchedTags, detail } = result;
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [studentId, setStudentId] = useState("");
+  const { user } = useAuth();
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [done, setDone] = useState(false);
@@ -21,39 +21,26 @@ export default function MatchCard({ result, rank }: Props) {
   const scoreColor =
     score >= 70 ? "text-green-500" : score >= 40 ? "text-orange-500" : "text-gray-500";
 
-  const handleApply = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleApply = async () => {
+    if (!user) return;
     setSaving(true);
     setMessage("");
 
-    const userId = crypto.randomUUID();
-    const { error: userError } = await supabase.from("users").insert({
-      id: userId,
-      name,
-      student_id: studentId,
-      tags: matchedTags,
-    });
-
-    if (userError) {
-      setSaving(false);
-      if (userError.code === "23505") {
-        setMessage("이미 등록된 학번이에요. 지금 버전에서는 한 번만 지원할 수 있어요.");
-      } else {
-        setMessage("저장에 실패했어요: " + userError.message);
-      }
-      return;
-    }
-
-    const { error: appError } = await supabase.from("applications").insert({
+    const { error } = await supabase.from("applications").insert({
       post_id: post.id,
-      user_id: userId,
+      user_id: user.id,
       status: "pending",
     });
 
     setSaving(false);
 
-    if (appError) {
-      setMessage("지원 저장에 실패했어요: " + appError.message);
+    if (error) {
+      if (error.code === "23505") {
+        setMessage("이미 지원한 모집글이에요.");
+        setDone(true);
+      } else {
+        setMessage("지원 저장에 실패했어요: " + error.message);
+      }
       return;
     }
 
@@ -96,51 +83,29 @@ export default function MatchCard({ result, rank }: Props) {
         {detail.deadlineBonus > 0 && ` + 마감 임박 ${detail.deadlineBonus}점`}
       </p>
 
-      {done ? (
-        <p className="text-sm text-green-600 font-medium">지원이 저장됐어요.</p>
-      ) : open ? (
-        <form onSubmit={handleApply} className="flex flex-col gap-2">
-          <input
-            type="text"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="이름"
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-          />
-          <input
-            type="text"
-            required
-            value={studentId}
-            onChange={(e) => setStudentId(e.target.value)}
-            placeholder="학번 (예: 2415)"
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-          />
-          {message && <p className="text-xs text-red-500">{message}</p>}
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-            >
-              {saving ? "저장 중..." : "지원 제출"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="border border-gray-300 rounded-lg px-4 py-2 text-sm hover:bg-gray-50"
-            >
-              취소
-            </button>
-          </div>
-        </form>
+      {message && (
+        <p className={`text-xs ${done ? "text-gray-500" : "text-red-500"}`}>{message}</p>
+      )}
+
+      {!user ? (
+        <Link
+          href="/login"
+          className="text-center bg-gray-100 text-gray-700 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-200"
+        >
+          로그인하고 지원하기
+        </Link>
+      ) : done ? (
+        <p className="text-sm text-green-600 font-medium">
+          {message ? "" : "지원이 저장됐어요."}
+        </p>
       ) : (
         <button
           type="button"
-          onClick={() => setOpen(true)}
-          className="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-700 transition-colors"
+          onClick={handleApply}
+          disabled={saving}
+          className="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
         >
-          지원하기
+          {saving ? "저장 중..." : "지원하기"}
         </button>
       )}
     </div>

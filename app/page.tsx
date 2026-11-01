@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import PostCard from "../components/PostCard";
 import TagFilter from "../components/TagFilter";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../lib/AuthContext";
 
 interface DbPost {
   id: string;
@@ -16,6 +17,7 @@ interface DbPost {
 }
 
 export default function Home() {
+  const { user, signOut } = useAuth();
   const [allPosts, setAllPosts] = useState<DbPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
@@ -59,34 +61,29 @@ export default function Home() {
     );
   }, [allPosts, selectedTags]);
 
+  const linkClass =
+    "text-sm border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50";
+
   return (
     <main className="max-w-3xl mx-auto px-4 py-10 flex flex-col gap-6">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-start gap-4">
         <div>
           <h1 className="text-2xl font-bold">모집 중인 팀</h1>
           <p className="text-sm text-gray-500 mt-1">
             관심 있는 태그를 선택하면 조건에 맞는 모집글만 볼 수 있어요.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Link
-            href="/match"
-            className="text-sm border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50"
-          >
-            팀 추천받기
-          </Link>
-          <Link
-            href="/write"
-            className="text-sm border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50"
-          >
-            모집글 작성
-          </Link>
-          <Link
-            href="/mypage"
-            className="text-sm border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50"
-          >
-            마이페이지
-          </Link>
+        <div className="flex flex-wrap gap-2 justify-end">
+          <Link href="/match" className={linkClass}>팀 추천받기</Link>
+          <Link href="/write" className={linkClass}>모집글 작성</Link>
+          <Link href="/mypage" className={linkClass}>마이페이지</Link>
+          {user ? (
+            <button type="button" onClick={signOut} className={linkClass}>
+              로그아웃
+            </button>
+          ) : (
+            <Link href="/login" className={linkClass}>로그인</Link>
+          )}
         </div>
       </div>
 
