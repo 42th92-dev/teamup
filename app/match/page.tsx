@@ -1,17 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { posts } from "../../data/posts";
-import { recommendPosts, UserProfile } from "../../lib/matching";
+import { useEffect, useState } from "react";
+import { DbPost, recommendPosts, UserProfile } from "../../lib/matching";
+import { supabase } from "../../lib/supabase";
 import MatchCard from "../../components/MatchCard";
 import TagPicker from "../../components/TagPicker";
 import { domainTags, roleTags } from "../../data/tags";
 
 export default function MatchPage() {
+  const [posts, setPosts] = useState<DbPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [isBusy, setIsBusy] = useState(false);
   const [requested, setRequested] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      const { data, error } = await supabase.from("posts").select("*");
+      if (error) {
+        setErrorMsg(error.message);
+      } else {
+        setPosts((data as DbPost[]) ?? []);
+      }
+      setLoading(false);
+    };
+    load();
+  }, []);
 
   const user: UserProfile = { name: "나", tags, isBusy };
   const results = recommendPosts(user, posts);
@@ -53,7 +69,13 @@ export default function MatchPage() {
 
       {requested && (
         <div className="flex flex-col gap-4">
-          {results.length === 0 ? (
+          {loading ? (
+            <p className="text-sm text-gray-400 text-center py-10">불러오는 중...</p>
+          ) : errorMsg ? (
+            <p className="text-sm text-red-500 text-center py-10">
+              불러오기에 실패했어요: {errorMsg}
+            </p>
+          ) : results.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-10">
               추천할 모집글이 없어요. 태그를 더 선택해보세요.
             </p>

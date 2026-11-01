@@ -1,14 +1,22 @@
 import { differenceInCalendarDays } from "date-fns";
-import { Post } from "../data/posts";
+
+export interface DbPost {
+  id: string;
+  title: string;
+  description: string;
+  tags: string[];
+  needed_count: number;
+  deadline: string;
+}
 
 export interface UserProfile {
   name: string;
   tags: string[];
-  isBusy: boolean; // 현재 다른 대회/프로젝트에 참여 중인지
+  isBusy: boolean;
 }
 
 export interface MatchResult {
-  post: Post;
+  post: DbPost;
   score: number;
   matchedTags: string[];
   detail: {
@@ -22,12 +30,11 @@ const BUSY_PENALTY = 15;
 
 export function calculateMatch(
   user: UserProfile,
-  post: Post,
+  post: DbPost,
   today: Date = new Date()
 ): MatchResult {
   const daysLeft = differenceInCalendarDays(new Date(post.deadline), today);
 
-  // 마감이 지난 글은 0점
   if (daysLeft < 0) {
     return {
       post,
@@ -40,7 +47,7 @@ export function calculateMatch(
   const matchedTags = post.tags.filter((tag) => user.tags.includes(tag));
   const base =
     post.tags.length === 0 ? 0 : (matchedTags.length / post.tags.length) * 100;
-  // 일치하는 태그가 하나도 없으면 추천하지 않음
+
   if (matchedTags.length === 0) {
     return {
       post,
@@ -61,7 +68,7 @@ export function calculateMatch(
 
 export function recommendPosts(
   user: UserProfile,
-  posts: Post[],
+  posts: DbPost[],
   today: Date = new Date()
 ): MatchResult[] {
   return posts
