@@ -7,6 +7,7 @@ export interface DbPost {
   tags: string[];
   needed_count: number;
   deadline: string;
+  is_closed?: boolean;
 }
 
 export interface UserProfile {
@@ -72,6 +73,7 @@ export function recommendPosts(
   today: Date = new Date()
 ): MatchResult[] {
   return posts
+    .filter((post) => !post.is_closed) // 마감된 글은 추천하지 않는다
     .map((post) => calculateMatch(user, post, today))
     .filter((result) => result.score > 0)
     .sort((a, b) => b.score - a.score);

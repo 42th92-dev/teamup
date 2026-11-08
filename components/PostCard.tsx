@@ -7,6 +7,7 @@ interface CardPost {
   tags: string[];
   needed_count: number;
   deadline: string;
+  is_closed?: boolean;
 }
 
 interface Props {
@@ -18,9 +19,15 @@ export default function PostCard({ post }: Props) {
   const deadlineDate = new Date(post.deadline);
   const dDay = differenceInCalendarDays(deadlineDate, today);
 
-  const dDayLabel = dDay > 0 ? `D-${dDay}` : dDay === 0 ? "D-Day" : "마감";
-  const dDayColor =
+  let dDayLabel = dDay > 0 ? `D-${dDay}` : dDay === 0 ? "D-Day" : "마감";
+  let dDayColor =
     dDay <= 3 ? "text-red-500" : dDay <= 7 ? "text-orange-500" : "text-gray-500";
+
+  // 수락 인원이 다 차서 마감된 글
+  if (post.is_closed) {
+    dDayLabel = "모집 마감";
+    dDayColor = "text-gray-400";
+  }
 
   return (
     <div className="border border-gray-200 rounded-xl p-5 flex flex-col gap-3 hover:shadow-md transition-shadow">

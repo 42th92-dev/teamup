@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import StatusBadge from "../../components/StatusBadge";
 import TagPicker from "../../components/TagPicker";
 import { domainTags, roleTags } from "../../data/tags";
 import { supabase } from "../../lib/supabase";
@@ -95,12 +96,20 @@ export default function MyPage() {
     <main className="max-w-2xl mx-auto px-4 py-10 flex flex-col gap-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">마이페이지</h1>
-        <Link
-          href="/"
-          className="text-sm border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50"
-        >
-          메인으로
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/my-posts"
+            className="text-sm border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50"
+          >
+            내 모집글 관리
+          </Link>
+          <Link
+            href="/"
+            className="text-sm border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50"
+          >
+            메인으로
+          </Link>
+        </div>
       </div>
 
       <p className="text-sm text-gray-500">{user.email}</p>
@@ -156,7 +165,10 @@ export default function MyPage() {
                 key={a.id}
                 className="border border-gray-200 rounded-lg px-4 py-3 text-sm flex justify-between"
               >
-                <span>{a.posts?.title ?? "삭제된 모집글"}</span>
+                <span className="flex items-center gap-2">
+                  <StatusBadge status={a.status} />
+                  {a.posts?.title ?? "삭제된 모집글"}
+                </span>
                 <span className="text-gray-500">
                   {new Date(a.created_at).toLocaleDateString("ko-KR")}
                 </span>

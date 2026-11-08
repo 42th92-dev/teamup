@@ -14,6 +14,7 @@ interface DbPost {
   tags: string[];
   needed_count: number;
   deadline: string;
+  is_closed: boolean;
 }
 
 export default function Home() {
