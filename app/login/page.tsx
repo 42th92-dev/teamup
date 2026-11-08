@@ -8,6 +8,11 @@ import { supabase } from "../../lib/supabase";
 // 학교 이메일만 허용하려면 예: "@djshs.djsch.kr" 로 바꾸세요. 빈 문자열이면 제한 없음
 const ALLOWED_DOMAIN = "";
 
+// 학번: 숫자 정확히 4자리 (예: 2415)
+const STUDENT_ID_PATTERN = /^\d{4}$/;
+// 이메일: "글자@글자.글자" 형식 (공백과 @는 각 부분에 들어갈 수 없음)
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -21,6 +26,26 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
+
+    // 회원가입 입력 검증: 하나라도 틀리면 메시지를 보여주고 가입 요청을 보내지 않음
+    if (mode === "signup") {
+      if (name.trim() === "") {
+        setMessage("이름을 입력해주세요.");
+        return;
+      }
+      if (!STUDENT_ID_PATTERN.test(studentId)) {
+        setMessage("학번은 숫자 4자리로 입력해주세요. (예: 2415)");
+        return;
+      }
+      if (!EMAIL_PATTERN.test(email)) {
+        setMessage("이메일 형식이 올바르지 않아요. (예: name@example.com)");
+        return;
+      }
+      if (password.length < 6) {
+        setMessage("비밀번호는 6자 이상이어야 해요.");
+        return;
+      }
+    }
 
     if (mode === "signup" && ALLOWED_DOMAIN && !email.endsWith(ALLOWED_DOMAIN)) {
       setMessage(`${ALLOWED_DOMAIN} 이메일만 가입할 수 있어요.`);
@@ -88,7 +113,7 @@ export default function LoginPage() {
         </Link>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3">
         {mode === "signup" && (
           <>
             <input
@@ -102,6 +127,8 @@ export default function LoginPage() {
             <input
               type="text"
               required
+              inputMode="numeric"
+              maxLength={4}
               value={studentId}
               onChange={(e) => setStudentId(e.target.value)}
               placeholder="학번 (예: 2415)"
