@@ -2,61 +2,41 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import TagPicker from "../../components/TagPicker";
-import { domainTags, roleTags } from "../../data/tags";
+import PostForm, { PostFormValues } from "../../components/PostForm";
 import { supabase } from "../../lib/supabase";
-import { extractTags } from "../../lib/extractTags";
 import { useAuth } from "../../lib/AuthContext";
+
+const emptyValues: PostFormValues = {
+  title: "",
+  description: "",
+  neededCount: 1,
+  deadline: "",
+  tags: [],
+};
 
 export default function WritePost() {
   const { user, loading } = useAuth();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [neededCount, setNeededCount] = useState(1);
-  const [deadline, setDeadline] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [extractMsg, setExtractMsg] = useState("");
   const [saved, setSaved] = useState(false);
+  // 저장 후 이 숫자를 올려서 폼을 빈 상태로 다시 만든다
+  const [formKey, setFormKey] = useState(0);
 
-  const handleExtract = () => {
-    const found = extractTags(title + " " + description);
-    if (found.length === 0) {
-      setExtractMsg("글에서 찾은 태그가 없어요. 직접 선택해주세요.");
-      return;
-    }
-    setTags(found);
-    setExtractMsg(`${found.length}개 태그를 자동으로 선택했어요. 필요하면 직접 고쳐주세요.`);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    setSaving(true);
+  const handleSubmit = async (values: PostFormValues) => {
+    if (!user) return "로그인이 필요해요.";
 
     const { error } = await supabase.from("posts").insert({
       author_id: user.id,
-      title,
-      description,
-      tags,
-      needed_count: neededCount,
-      deadline,
+      title: values.title,
+      description: values.description,
+      tags: values.tags,
+      needed_count: values.neededCount,
+      deadline: values.deadline,
     });
 
-    setSaving(false);
-
-    if (error) {
-      alert("저장에 실패했어요: " + error.message);
-      return;
-    }
+    if (error) return "저장에 실패했어요: " + error.message;
 
     setSaved(true);
-    setTitle("");
-    setDescription("");
-    setNeededCount(1);
-    setDeadline("");
-    setTags([]);
-    setExtractMsg("");
+    setFormKey((k) => k + 1);
+    return null;
   };
 
   if (loading) {
@@ -90,84 +70,7 @@ export default function WritePost() {
         </Link>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium">대회 및 프로젝트명</label>
-          <input
-            type="text"
-            required
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="예) NYPC 알고리즘 대회 팀원 모집"
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium">상세 설명</label>
-          <textarea
-            required
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={5}
-            placeholder="어떤 대회/프로젝트인지, 함께할 팀원에게 바라는 점을 적어주세요"
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none"
-          />
-        </div>
-
-        <div className="flex gap-4">
-          <div className="flex flex-col gap-1 flex-1">
-            <label className="text-sm font-medium">필요 인원</label>
-            <input
-              type="number"
-              min={1}
-              required
-              value={neededCount}
-              onChange={(e) => setNeededCount(Number(e.target.value))}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1 flex-1">
-            <label className="text-sm font-medium">모집 마감일</label>
-            <input
-              type="date"
-              required
-              value={deadline}
-              onChange={(e) => setDeadline(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleExtract}
-              className="border border-blue-500 text-blue-600 rounded-lg px-3 py-1 text-sm hover:bg-blue-50"
-            >
-              글에서 태그 자동 추출
-            </button>
-            {extractMsg && <span className="text-xs text-gray-500">{extractMsg}</span>}
-          </div>
-          <label className="text-sm font-medium">분야 태그</label>
-          <TagPicker options={domainTags} selected={tags} onChange={setTags} />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium">역량/역할 태그</label>
-          <TagPicker options={roleTags} selected={tags} onChange={setTags} />
-        </div>
-
-        <button
-          type="submit"
-          disabled={saving}
-          className="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
-        >
-          {saving ? "저장 중..." : "모집글 등록"}
-        </button>
-      </form>
+      <PostForm key={formKey} initial={emptyValues} submitLabel="모집글 등록" onSubmit={handleSubmit} />
 
       {saved && (
         <div className="border border-green-200 bg-green-50 rounded-lg p-4 text-sm text-gray-700">

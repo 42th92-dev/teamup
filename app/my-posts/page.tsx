@@ -103,6 +103,36 @@ export default function MyPostsPage() {
     setReloadKey((k) => k + 1);
   };
 
+  const deletePost = async (post: MyPost) => {
+    setMsg("");
+
+    // 지원자가 있으면 삭제를 막는다 (지원자의 지원 기록을 보호)
+    if (post.applications.length > 0) {
+      setMsg("지원자가 있는 글은 삭제할 수 없어요.");
+      return;
+    }
+
+    if (!window.confirm(`"${post.title}" 글을 삭제할까요?`)) return;
+
+    const { data, error } = await supabase
+      .from("posts")
+      .delete()
+      .eq("id", post.id)
+      .select("id");
+
+    if (error) {
+      setMsg("삭제에 실패했어요: " + error.message);
+      return;
+    }
+    // RLS 때문에 막히면 에러 없이 0건이 삭제된다
+    if (!data || data.length === 0) {
+      setMsg("삭제 권한이 없어요.");
+      return;
+    }
+
+    setReloadKey((k) => k + 1);
+  };
+
   if (loading) {
     return <main className="max-w-2xl mx-auto px-4 py-10 text-sm text-gray-400">불러오는 중...</main>;
   }
@@ -153,6 +183,22 @@ export default function MyPostsPage() {
               <p className="text-sm text-gray-500">
                 수락 {acceptedCount}명 / 필요 {post.needed_count}명
               </p>
+
+              <div className="flex gap-2">
+                <Link
+                  href={`/my-posts/${post.id}/edit`}
+                  className="border border-gray-300 rounded-lg px-3 py-1 text-sm hover:bg-gray-50"
+                >
+                  수정
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => deletePost(post)}
+                  className="border border-red-300 text-red-600 rounded-lg px-3 py-1 text-sm hover:bg-red-50"
+                >
+                  삭제
+                </button>
+              </div>
 
               {post.applications.length === 0 ? (
                 <p className="text-sm text-gray-400">아직 지원자가 없어요.</p>
